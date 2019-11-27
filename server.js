@@ -18,7 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 // Adiciona Interceptor nas requisicoes
-// app.use(cobrarTokenJWT)
+app.use(cobrarTokenJWT)
 
 
 let tasks = [];
