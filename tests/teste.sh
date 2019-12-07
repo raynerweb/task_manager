@@ -31,6 +31,24 @@ BODY=""
 STATUS=""
 NOTA=0
 
+calculaNota() {
+	merece_nota=true
+	for i in $@; do
+		if $merece_nota && $i 
+		then
+			merece_nota=true
+		else
+			merece_nota=false
+		fi
+	done
+
+	if $merece_nota
+	then
+		NOTA=$((NOTA+1))
+	fi
+	printf "NOTA $NOTA \n\n"
+}
+
 get() {
 	endpoint=$1
 	RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT$endpoint -X GET -H "Content-Type: application/json")
@@ -71,23 +89,10 @@ hasStatus() {
 }
 
 get "/"
-RESULT=$(hasBody "message" "ok")
-if [ $RESULT ]
-then
-	NOTA=$((NOTA+1))
-fi
-printf "NOTA $NOTA \n\n"
+calculaNota $(hasBody "message" "ok")
 
 post "/login" "login_incorreto.json"
-RESULT_STATUS=$(hasStatus 401)
-RESULT=$(hasBody "message" "Error in username or password")
-if [[ ( $RESULT_STATUS && $RESULT ) ]]
-then
-	NOTA=$((NOTA+1))
-fi
-printf "NOTA $NOTA \n\n"
-
-
+calculaNota $(hasStatus 401) $(hasBody "message" "Error in username or password")
 
 # echo "@GET /"
 # RESULT=$(curl -s http://$IP:$PORT/ -X GET -H "Content-Type: application/json" | jq -r '.message')
