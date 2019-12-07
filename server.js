@@ -12,6 +12,9 @@ const jwt = require('jsonwebtoken');
 //SECRET
 const SEGREDO = 'SECRET';
 
+// DAO das Tasks
+const taskDAO = require('./taskDAO');
+
 
 // Habilita JSON no response
 app.use(bodyParser.urlencoded({ extended: true }));
