@@ -50,7 +50,7 @@ app.post('/login', (req, resp) => {
     var body = req.body;
     if (body.username == 'usuario' && body.password == '123456') {
         var token = jwt.sign({ username: 'usuario', role: 'admin' }, SEGREDO, {
-            expiresIn: '1d'
+            expiresIn: '1y'
         });
         resp.send({ token });
     } else {
@@ -85,6 +85,7 @@ app.post('/tasks', (request, response) => {
         taskDAO.save(task, (error, saved) => {
             if (error) {
                 console.log(error);
+                response.status(500).send();
             } else {
                 response.status(201).send(saved);
             }
@@ -96,12 +97,21 @@ app.post('/tasks', (request, response) => {
 });
 
 app.get('/tasks/:id', (request, response) => {
-    taskDAO.save(function (error, saved) {
+    taskDAO.findOne(request.params.id, (error, task) => {
+
         if (error) {
+            console.log(error);
             response.status(500).send();
-        } else {
-            response.status(201).send(saved);
+            return;
         }
+
+        if (task) {
+            response.send(task);
+            return;
+        }
+
+        response.status(404).send();
+        return;
     });
 });
 
@@ -115,27 +125,54 @@ app.put('/tasks/:id', (request, response) => {
         return;
     }
 
-    const task = tasks.find(t => t.id == request.params.id);
-    if (task) {
-        task.title = body.title;
-        task.description = body.description;
-        task.isDone = body.isDone;
-        task.isPriority = body.isPriority;
-        response.send(task);
-    } else {
-        response.status(404);
-        response.send();
-    }
+    taskDAO.findOne(request.params.id, (error, task) => {
+        if (error) {
+            console.log(error);
+            response.status(500).send();
+            return;
+        }
+        if (task) {
+            task.title = body.title;
+            task.description = body.description;
+            task.isDone = body.isDone;
+            task.isPriority = body.isPriority;
+            taskDAO.save(task, (error, saved) => {
+                if (error) {
+                    console.log(error);
+                    response.status(500).send();
+                } else {
+                    response.status(200).send(saved);
+                }
+            });
+        }
+
+    });
 });
 
 app.delete('/tasks/:id', (request, response) => {
-    var task = tasks.find(t => t.id == request.params.id);
-    if (task) {
-        tasks = tasks.filter(t => t.id != request.params.id);
-        response.status(200).send();
-    } else {
+    taskDAO.findOne(request.params.id, (error, task) => {
+        if (error) {
+            console.log(error);
+            response.status(500).send();
+            return;
+        }
+
+        if (task) {
+            taskDAO.remove(task.id, (error, msg) => {
+                if (error) {
+                    console.log(error)
+                    response.status(500).send();
+                } else {
+                    response.send(task);
+                }
+            });
+            return;
+        }
+
         response.status(404).send();
-    }
+        return;
+
+    })
 });
 
 function isValid(body) {

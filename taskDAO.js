@@ -53,7 +53,7 @@ const findAll = (callback) => {
     });
 };
 
-const findOne = (callback) => {
+const findOne = (id, callback) => {
     dynamoDB.getItem({
         TableName: 'Tasks',
         Key: { "id": { S: id } }

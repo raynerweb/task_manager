@@ -55,7 +55,7 @@ get() {
 	RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT$endpoint -X GET -H "Content-Type: application/json" -H "x-access-token: $token")
 	BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
 	STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
-	echo "@GET $endpoint $STATUS $BODY"
+	echo "@GET   $endpoint $STATUS $BODY"
 }
 
 post() {
@@ -65,7 +65,17 @@ post() {
 	RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT$endpoint -X POST -H "Content-Type: application/json" -H "x-access-token: $token" --data "@$json")
 	BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
 	STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
-	echo "@POST $endpoint $STATUS $BODY"
+	echo "@POST  $endpoint $STATUS $BODY"
+}
+
+put() {
+	endpoint=$1
+	json=$2
+	token=$3
+	RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT$endpoint -X PUT -H "Content-Type: application/json" -H "x-access-token: $token" --data "@$json")
+	BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
+	STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+	echo "@PUT   $endpoint $STATUS $BODY"
 }
 
 hasBody() {
@@ -73,6 +83,16 @@ hasBody() {
 	expect=$2
 	RESULT=$(echo $BODY | jq -r $attribute)
 	if [[ $RESULT == $expect ]]
+	then
+		echo true
+	else
+		echo false
+	fi
+}
+
+jsonFilterContains() {
+	object=$(echo $BODY | jq -r 'map(select(.id == "'$1'"))')
+	if [[ ( $object == *"$1"* ) ]]
 	then
 		echo true
 	else
@@ -95,34 +115,26 @@ hasStatus() {
 	fi
 }
 
-# get "/"
-# calculaNota $(hasBody "message" "ok")
+get "/"
+calculaNota $(hasBody "message" "ok")
 
-# post "/login" "login_incorreto.json"
-# calculaNota $(hasStatus 401) $(hasBody "message" "Error in username or password")
+post "/login" "login_incorreto.json"
+calculaNota $(hasStatus 401) $(hasBody "message" "Error in username or password")
 
-# post "/login" "login.json"
-# token=$(getBodyAttribute "token")
-# calculaNota $(hasStatus 200) $(hasBody "token" "$token")
+post "/login" "login.json"
+token=$(getBodyAttribute "token")
+calculaNota $(hasStatus 200) $(hasBody "token" "$token")
 
-# post "/tasks" "new_task.json" $token
-# id_task=$(getBodyAttribute "id")
-# calculaNota $(hasStatus 201) $(hasBody "id" "$id_task")
+post "/tasks" "new_task.json" $token
+id_task=$(getBodyAttribute "id")
+calculaNota $(hasStatus 201) $(hasBody "id" "$id_task")
 
-# post "/tasks" "new_task dog.json" $token
-# id_task_dog=$(getBodyAttribute "id")
-# calculaNota $(hasStatus 201) $(hasBody "id" "$id_task_dog")
+post "/tasks" "new_task dog.json" $token
+id_task_dog=$(getBodyAttribute "id")
+calculaNota $(hasStatus 201) $(hasBody "id" "$id_task_dog")
 
 get "/tasks" $token
-calculaNota $(hasBody "id" "$id_task_dog")
-
-# RESULT=$(curl -s http://$IP:$PORT/tasks -X GET -H "Content-Type: application/json" -H "x-access-token: $TOKEN")
-# printf "@GET /tasks -- $RESULT\n"
-# if [[ ( $RESULT == *"$TASK_ID"* && $RESULT == *"$TASK_ID_DOG"* ) ]]
-# then
-# 	NOTA=$((NOTA+1))
-# fi
-# printf "NOTA $NOTA \n\n"
+calculaNota $(hasStatus 200) $(jsonFilterContains "$id_task") $(jsonFilterContains "$id_task_dog")
 
 exit 0
 	
