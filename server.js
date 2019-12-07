@@ -27,7 +27,7 @@ app.use(cobrarTokenJWT)
 let tasks = [];
 
 function cobrarTokenJWT(req, resp, next) {
-    if (req.url == '/login') {
+    if (req.url == '/login' || req.url == "/") {
         next();
         return;
     }
@@ -41,52 +41,71 @@ function cobrarTokenJWT(req, resp, next) {
     }
 }
 
+// endpoints
+app.get("/", (request, response) => {
+    response.send({ 'message': 'ok' });
+});
+
 app.post('/login', (req, resp) => {
     var body = req.body;
-    if (body.username == 'usuario' && body.password == 'teste123') {
+    if (body.username == 'usuario' && body.password == '123456') {
         var token = jwt.sign({ username: 'usuario', role: 'admin' }, SEGREDO, {
-            expiresIn: '1h'
+            expiresIn: '1d'
         });
-        resp.send({ auth: true, token });
+        resp.send({ token });
     } else {
-        resp.status(401).send({ auth: false, message: 'usuario invalido' });
+        resp.status(401).send({ message: 'Error in username or password' });
     }
 })
 
-
-// endpoints
 app.get('/tasks', (request, response) => {
-    response.send(tasks);
-});
 
-app.get('/tasks/:id', (request, response) => {
-    const task = tasks.find(t => t.id == request.params.id);
-    if (task) {
-        response.status(200).send(task);
-    } else {
-        response.status(404).send();
-    }
+    taskDAO.findAll((error, tasks) => {
+        if (error) {
+            console.log(error);
+            response.status(500).send();
+        } else {
+            response.send(tasks);
+        }
+    });
+
 });
 
 app.post('/tasks', (request, response) => {
     const body = request.body;
-    
+
     if (isValid(body)) {
-        console.log('valid');
         const task = {
-            id: uuid(),
             title: body.title,
             description: body.description,
             isDone: body.isDone,
             isPriority: body.isPriority
         };
-        tasks.push(task);
-        response.status(201);
-        response.send(task);
+
+        taskDAO.save(task, (error, saved) => {
+            if (error) {
+                console.log(error);
+            } else {
+                response.status(201).send(saved);
+            }
+        });
+
     } else {
         response.status(400).send({ message: 'Body inválido' });
     }
 });
+
+app.get('/tasks/:id', (request, response) => {
+    taskDAO.save(function (error, saved) {
+        if (error) {
+            response.status(500).send();
+        } else {
+            response.status(201).send(saved);
+        }
+    });
+});
+
+
 
 app.put('/tasks/:id', (request, response) => {
     const { body } = request;
@@ -133,4 +152,15 @@ function isValid(body) {
 
 
 // Inicia Servidor na porta 3000
-app.listen(3000);
+
+taskDAO.init(function (error, data) {
+    let porta = 3000;
+    if (error) {
+        console.log("Erro ao criar banco de dados");
+        console.log(error);
+    } else {
+        app.listen(porta, () => {
+            console.log(`Servidor rodando na porta ${porta}`)
+        });
+    }
+});
