@@ -27,6 +27,14 @@ echo "Testando endpoints em: $IP:$PORT"
 echo "========"
 
 
+RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT/ -X GET -H "Content-Type: application/json")
+echo $RESPONSE
+
+BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
+echo $BODY
+
+STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+echo $STATUS
 
 
 # NOTA=0
