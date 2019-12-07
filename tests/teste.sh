@@ -26,18 +26,69 @@ echo "========"
 echo "Testando endpoints em: $IP:$PORT"
 echo "========"
 
+RESPONSE=""
+BODY=""
+STATUS=""
+NOTA=0
 
-RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT/ -X GET -H "Content-Type: application/json")
-echo $RESPONSE
+get() {
+	endpoint=$1
+	RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT$endpoint -X GET -H "Content-Type: application/json")
+	BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
+	STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+	echo "@GET $endpoint $STATUS $BODY"
+}
 
-BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
-echo $BODY
+post() {
+	endpoint=$1
+	json=$2
+	RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT$endpoint -X POST -H "Content-Type: application/json" --data "@$json")
+	BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
+	STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+	echo "@POST $endpoint $STATUS $BODY"
+}
 
-STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
-echo $STATUS
+hasBody() {
+	attribute=".$1"
+	expect=$2
+	RESULT=$(echo $BODY | jq -r $attribute)
+	if [[ $RESULT == $expect ]]
+	then
+		echo true
+	else
+		echo false
+	fi
+}
+
+hasStatus() {
+	expect=$1
+	if [ $STATUS == $expect ]
+	then
+		echo true
+	else
+		echo false
+	fi
+}
+
+get "/"
+RESULT=$(hasBody "message" "ok")
+if [ $RESULT ]
+then
+	NOTA=$((NOTA+1))
+fi
+printf "NOTA $NOTA \n\n"
+
+post "/login" "login_incorreto.json"
+RESULT_STATUS=$(hasStatus 401)
+RESULT=$(hasBody "message" "Error in username or password")
+if [[ ( $RESULT_STATUS && $RESULT ) ]]
+then
+	NOTA=$((NOTA+1))
+fi
+printf "NOTA $NOTA \n\n"
 
 
-# NOTA=0
+
 # echo "@GET /"
 # RESULT=$(curl -s http://$IP:$PORT/ -X GET -H "Content-Type: application/json" | jq -r '.message')
 
