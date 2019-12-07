@@ -78,6 +78,11 @@ hasBody() {
 	fi
 }
 
+getBodyAttribute() {
+	attribute=".$1"
+	echo $(echo $BODY | jq -r $attribute)
+}
+
 hasStatus() {
 	expect=$1
 	if [ $STATUS == $expect ]
@@ -94,24 +99,9 @@ calculaNota $(hasBody "message" "ok")
 post "/login" "login_incorreto.json"
 calculaNota $(hasStatus 401) $(hasBody "message" "Error in username or password")
 
-# echo "@GET /"
-# RESULT=$(curl -s http://$IP:$PORT/ -X GET -H "Content-Type: application/json" | jq -r '.message')
-
-# if [ $RESULT == "ok" ]
-# then
-# 	NOTA=$((NOTA+1))
-# fi
-# printf "NOTA $NOTA \n\n"
-
-
-# STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" http://$IP:$PORT/login -X POST -H "Content-Type: application/json" --data "@login_incorreto.json")
-# MESSAGE=$(curl -s http://$IP:$PORT/login -X POST -H "Content-Type: application/json" --data "@login_incorreto.json" | jq -r '.message')
-# printf "@POST /login -- $STATUS :: $MESSAGE\n"
-# if [[ ( $STATUS == 401 && $MESSAGE == "Error in username or password" ) ]]
-# then
-# 	NOTA=$((NOTA+1))
-# fi
-# printf "NOTA $NOTA \n\n"
+post "/login" "login.json"
+token=$(getBodyAttribute "token")
+calculaNota $(hasStatus 200) $(hasBody "token" "$token")
 
 
 # TOKEN=$(curl -s http://$IP:$PORT/login -X POST -H "Content-Type: application/json" --data "@login.json" | jq -r '.token')
