@@ -51,7 +51,8 @@ calculaNota() {
 
 get() {
 	endpoint=$1
-	RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT$endpoint -X GET -H "Content-Type: application/json")
+	token=$2
+	RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT$endpoint -X GET -H "Content-Type: application/json" -H "x-access-token: $token")
 	BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
 	STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
 	echo "@GET $endpoint $STATUS $BODY"
@@ -60,7 +61,8 @@ get() {
 post() {
 	endpoint=$1
 	json=$2
-	RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT$endpoint -X POST -H "Content-Type: application/json" --data "@$json")
+	token=$3
+	RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" http://$IP:$PORT$endpoint -X POST -H "Content-Type: application/json" -H "x-access-token: $token" --data "@$json")
 	BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
 	STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
 	echo "@POST $endpoint $STATUS $BODY"
@@ -93,43 +95,26 @@ hasStatus() {
 	fi
 }
 
-get "/"
-calculaNota $(hasBody "message" "ok")
+# get "/"
+# calculaNota $(hasBody "message" "ok")
 
-post "/login" "login_incorreto.json"
-calculaNota $(hasStatus 401) $(hasBody "message" "Error in username or password")
+# post "/login" "login_incorreto.json"
+# calculaNota $(hasStatus 401) $(hasBody "message" "Error in username or password")
 
-post "/login" "login.json"
-token=$(getBodyAttribute "token")
-calculaNota $(hasStatus 200) $(hasBody "token" "$token")
+# post "/login" "login.json"
+# token=$(getBodyAttribute "token")
+# calculaNota $(hasStatus 200) $(hasBody "token" "$token")
 
+# post "/tasks" "new_task.json" $token
+# id_task=$(getBodyAttribute "id")
+# calculaNota $(hasStatus 201) $(hasBody "id" "$id_task")
 
-# TOKEN=$(curl -s http://$IP:$PORT/login -X POST -H "Content-Type: application/json" --data "@login.json" | jq -r '.token')
-# printf "@POST /login -- $TOKEN\n"
-# if [ ! -z $TOKEN ]
-# then
-# 	NOTA=$((NOTA+1))
-# fi
-# printf "NOTA $NOTA \n\n"
+# post "/tasks" "new_task dog.json" $token
+# id_task_dog=$(getBodyAttribute "id")
+# calculaNota $(hasStatus 201) $(hasBody "id" "$id_task_dog")
 
-# STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" http://$IP:$PORT/tasks -X POST -H "Content-Type: application/json" -H "x-access-token: $TOKEN" --data "@new_task.json")
-# TASK_ID=$(curl -s http://$IP:$PORT/tasks -X POST -H "Content-Type: application/json" -H "x-access-token: $TOKEN" --data "@new_task.json" | jq -r '.id')
-# printf "@POST /tasks -- $STATUS :: $TASK_ID\n"
-# if [[ ( $STATUS == 201 && $TASK_ID != "" ) ]]
-# then
-# 	NOTA=$((NOTA+1))
-# fi
-# printf "NOTA $NOTA \n\n"
-
-# STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" http://$IP:$PORT/tasks -X POST -H "Content-Type: application/json" -H "x-access-token: $TOKEN" --data "@new_task dog.json")
-# TASK_ID_DOG=$(curl -s http://$IP:$PORT/tasks -X POST -H "Content-Type: application/json" -H "x-access-token: $TOKEN" --data "@new_task dog.json" | jq -r '.id')
-# printf "@POST /tasks -- $STATUS :: $TASK_ID_DOG\n"
-# if [[ ( $STATUS == 201 && $TASK_ID_DOG != "" ) ]]
-# then
-# 	NOTA=$((NOTA+1))
-# fi
-# printf "NOTA $NOTA \n\n"
-
+get "/tasks" $token
+calculaNota $(hasBody "id" "$id_task_dog")
 
 # RESULT=$(curl -s http://$IP:$PORT/tasks -X GET -H "Content-Type: application/json" -H "x-access-token: $TOKEN")
 # printf "@GET /tasks -- $RESULT\n"
